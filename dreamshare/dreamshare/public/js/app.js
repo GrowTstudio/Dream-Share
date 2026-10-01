@@ -34,7 +34,7 @@ const App = (() => {
 
   /* ---------------- Helpers ---------------- */
   const top = () => S.stack[S.stack.length - 1];
-  function go(s, p = {}) { S.stack.push({ s, ...p }); render(); }
+  function go(s, p = {}) { S.stack.push({ s, ...p }); try { history.pushState({ dreamshare: true }, ''); } catch(e) {} render(); }
   function back() { stopRec(true); if (S.stack.length > 1) { S.stack.pop(); render(); } }
   function switchTab(s, p = {}) { stopRec(true); S.stack = [{ s, ...p }]; render(); }
 
@@ -49,17 +49,17 @@ const App = (() => {
     catch (e) {
       if (e && e.status === 401) {
         API.setToken(''); S.me = null;
-        toast(e.message || 'Session khatam — dobara Log In karo');
+        toast(e.message || 'Session expired — please log in again');
         S.stack = [{ s: 'auth' }]; S.authMode = 'login'; render();
       } else {
-        toast(e && e.message ? e.message : 'Kuch galat ho gaya');
+        toast(e && e.message ? e.message : 'Something went wrong');
       }
     } finally { setBusy(false); }
   }
 
   function needLogin() {
     if (S.me) return false;
-    toast('Iske liye account chahiye — Log In / Sign Up karo 🌙');
+    toast('Please log in or sign up to continue 🌙');
     S.authMode = 'signup';
     go('auth');
     return true;
@@ -221,11 +221,11 @@ const App = (() => {
         </div>
         <div class="auth-welcome">
           <h2>${signup ? 'Create your account' : 'Welcome back!'}</h2>
-          <p>${signup ? 'Real ID banao — log tumhe @username se dhoondenge' : 'Log in to continue'}</p>
+          <p>${signup ? 'Create your account — people can find you by @username' : 'Log in to continue'}</p>
         </div>
         ${signup ? `
         <label class="field">${I.person}
-          <input id="f-name" type="text" placeholder="Aapka naam" maxlength="40"/>
+          <input id="f-name" type="text" placeholder="Your name" maxlength="40"/>
         </label>
         <label class="field">${I.at}
           <input id="f-user" type="text" placeholder="Username (e.g. aanya_dreams)" maxlength="20" autocapitalize="off"/>
@@ -262,11 +262,11 @@ const App = (() => {
     const list = S.feed;
     let items;
     if (S.busy && !list.length) {
-      items = `<div class="empty"><div class="big">🌙</div><p>Dreams load ho rahe hain...</p></div>`;
+      items = `<div class="empty"><div class="big">🌙</div><p>Loading dreams...</p></div>`;
     } else if (!list.length) {
       items = `<div class="empty"><div class="big">✨</div><p>${S.feedTab === 'following'
-        ? 'Jinhe follow karoge unke dreams yahan dikhenge.<br/>Explore me log dhoondho!'
-        : 'Abhi koi dream share nahi hua.<br/>Tum bano pehle dreamer! 🌙'}</p>
+        ? 'Dreams from people you follow will appear here.<br/>Find people in Explore!'
+        : 'No dreams have been shared yet.<br/>Be the first dreamer! 🌙'}</p>
         <div style="height:16px"></div>
         <button class="btn btn-primary" data-act="share-mode" data-m="text">+ Share your dream</button></div>`;
     } else {
@@ -428,7 +428,7 @@ const App = (() => {
 
   function screenComments() {
     const data = S.comments;
-    if (!data || !data.dream) return `<div class="screen"><div class="empty"><div class="big">🌙</div><p>Load ho raha hai...</p></div></div>`;
+    if (!data || !data.dream) return `<div class="screen"><div class="empty"><div class="big">🌙</div><p>Loading...</p></div></div>`;
     const d = data.dream;
     const a = d.author;
     const t = top();
@@ -492,7 +492,7 @@ const App = (() => {
 
   function screenProfile() {
     const data = S.profile;
-    if (!data || !data.user) return `<div class="screen"><div class="empty"><div class="big">🌙</div><p>Profile load ho raha hai...</p></div></div>`;
+    if (!data || !data.user) return `<div class="screen"><div class="empty"><div class="big">🌙</div><p>Loading profile...</p></div></div>`;
     const u = data.user;
     const mine = data.dreams;
 
@@ -530,7 +530,7 @@ const App = (() => {
         ${S.profileTab === 'dreams'
       ? (mine.length
         ? mine.map(miniPost).join('')
-        : `<div class="empty"><div class="big">🌙</div><p>${u.isMe ? 'Share your first dream and<br/>start your journey!' : 'Inhone abhi tak koi dream share nahi kiya.'}</p></div>`)
+        : `<div class="empty"><div class="big">🌙</div><p>${u.isMe ? 'Share your first dream and<br/>start your journey!' : 'This user has not shared any dreams yet.'}</p></div>`)
       : `<div class="card about-card">
                <div class="name">About ${esc(u.name)}</div>
                <p>${esc(u.bio)}</p>
@@ -565,7 +565,7 @@ const App = (() => {
         ${tabs.map(([k, l]) => `<button class="chip ${S.notifTab === k ? 'on' : ''}" data-act="notif-tab" data-k="${k}">${l}</button>`).join('')}
       </div>
       <div class="scroll pb-nav">
-        ${list.length ? list.map(row).join('') : `<div class="empty"><div class="big">🔔</div><p>Abhi koi notification nahi.<br/>Jaise log tumhare dreams dekhenge — yahan aayega!</p></div>`}
+        ${list.length ? list.map(row).join('') : `<div class="empty"><div class="big">🔔</div><p>No notifications yet.<br/>Activity on your dreams will appear here.</p></div>`}
       </div>
     </div>`;
   }
@@ -582,7 +582,7 @@ const App = (() => {
           ${res.users.map(u => userRow(u)).join('')}` : ''}
         <h3 class="sect-title">${isCat ? esc(res.cat) + ' Dreams' : 'Dreams'} (${res.dreams.length})</h3>
         <div id="explore-results">
-          ${res.dreams.length ? res.dreams.map(miniPost).join('') : `<div class="empty"><div class="big">🔍</div><p>Kuch nahi mila.<br/>Aur log aane do — dreams bharte jayenge!</p></div>`}
+          ${res.dreams.length ? res.dreams.map(miniPost).join('') : `<div class="empty"><div class="big">🔍</div><p>No results found.<br/>Check back as the community grows!</p></div>`}
         </div>`;
     } else {
       results = `
@@ -614,7 +614,7 @@ const App = (() => {
                 <span class="act ${d.likedByMe ? 'liked' : ''}" style="padding-left:0">${I.heart}<span>${d.likes}</span></span>
                 <span class="act">${I.comment}<span>${d.commentCount}</span></span>
               </div>
-            </div>`).join('') : `<div class="empty"><div class="big">🌙</div><p>Community badh rahi hai...<br/>Jald hi yahan dreams dikhenge!</p></div>`}
+            </div>`).join('') : `<div class="empty"><div class="big">🌙</div><p>The community is growing...<br/>Dreams will appear here soon!</p></div>`}
         </div>`;
     }
 
@@ -644,9 +644,9 @@ const App = (() => {
         <h3 class="sect-title">Display name</h3>
         <label class="field"><input id="e-name" type="text" value="${esc(u.name)}" maxlength="40"/></label>
         <h3 class="sect-title">Bio</h3>
-        <div class="ta-wrap"><textarea id="e-bio" maxlength="140" placeholder="Apne baare me kuch likho...">${esc(u.bio)}</textarea></div>
+        <div class="ta-wrap"><textarea id="e-bio" maxlength="140" placeholder="Write a little about yourself...">${esc(u.bio)}</textarea></div>
         <div style="height:12px"></div>
-        <p class="tiny dim">Username: @${esc(u.username)} (abhi change nahi hota)</p>
+        <p class="tiny dim">Username: @${esc(u.username)} (cannot be changed yet)</p>
       </div>
       <div class="bottom-cta">
         <button class="btn btn-primary btn-block" data-act="save-profile">Save Changes</button>
@@ -660,7 +660,7 @@ const App = (() => {
       : S.feed.find(x => x.id === p.id);
     return `
     <div class="screen">
-      <div class="scroll pad">${d ? postCard(d) : '<div class="empty"><div class="big">🌙</div><p>Dream share ho raha hai...</p></div>'}</div>
+      <div class="scroll pad">${d ? postCard(d) : '<div class="empty"><div class="big">🌙</div><p>Publishing dream...</p></div>'}</div>
       <div class="sheet-wrap" data-act="close-sheet">
         <div class="sheet" data-stop="1">
           <h4>Share this dream</h4>
@@ -765,7 +765,7 @@ const App = (() => {
       pi.addEventListener('change', () => {
         const f = pi.files && pi.files[0];
         if (!f) return;
-        if (f.size > 3.5 * 1024 * 1024) { toast('Photo chhoti rakho (max ~3MB)'); return; }
+        if (f.size > 3.5 * 1024 * 1024) { toast('Please use a smaller photo (max ~3MB)'); return; }
         const r = new FileReader();
         r.onload = () => { S.draft.photo = r.result; render(); toast('Photo added 📸'); };
         r.readAsDataURL(f);
@@ -877,6 +877,15 @@ const App = (() => {
   }
 
   /* ---------------- Actions ---------------- */
+  async function handleGoogleCredential(response) {
+    if (!response || !response.credential) { toast('Google sign-in was cancelled.'); return; }
+    await wrap(async () => {
+      const r = await API.google(response.credential);
+      API.setToken(r.token); S.me = r.user; S.stack = [{s:'home'}];
+      await Promise.all([loadFeed(), loadNotifs()]); render(); toast('Welcome to DreamShare, ' + S.me.name + '!');
+    });
+  }
+
   const actions = {
     back,
     'back-or-home': () => { if (S.stack.length > 1) back(); else switchTab('home'); },
@@ -887,8 +896,8 @@ const App = (() => {
       const f = document.getElementById('f-pw');
       if (f) f.type = f.type === 'password' ? 'text' : 'password';
     },
-    forgot: () => toast('Forgot password ke liye server admin se contact karo (demo)'),
-    oauth: (el) => toast(el.dataset.p + ' Sign-In jald hi — abhi Email se Sign Up karo 🙂'),
+    forgot: () => toast('Password recovery is not configured yet.'),
+    oauth: (el) => { if (el.dataset.p !== 'Google') { toast('Apple sign-in is not configured yet.'); return; } const clientId = document.querySelector('meta[name=google-client-id]')?.content || ''; if (!clientId || clientId.includes('YOUR_GOOGLE')) { toast('Google Sign-In needs a Google OAuth Client ID.'); return; } if (!window.google?.accounts?.id) { toast('Google Sign-In is still loading. Please try again.'); return; } window.google.accounts.id.initialize({client_id:clientId,callback:handleGoogleCredential}); window.google.accounts.id.prompt(); },
 
     signup: () => wrap(async () => {
       const name = document.getElementById('f-name').value.trim();
@@ -920,7 +929,7 @@ const App = (() => {
       S.me = null;
       API.setToken('');
       switchTab('home');
-      toast('Guest mode — sab dekh sakte ho, post/like/follow ke liye account banao');
+      toast('Guest mode — browse freely. Create an account to post, like, or follow.');
       wrap(async () => { await loadFeed(); render(); });
     },
 
@@ -976,7 +985,7 @@ const App = (() => {
     'to-ai': () => {
       const d = S.draft;
       const txt = (d.text || '').trim();
-      if (!txt && !d.photo) { toast('Pehle apna dream likho ya bolo 🌙'); return; }
+      if (!txt && !d.photo) { toast('Please write or record your dream first 🌙'); return; }
       S.aiBusy = true; S.interpretation = null;
       go('ai');
       const steps = document.querySelectorAll('.ai-step');
@@ -1005,7 +1014,7 @@ const App = (() => {
       S.stack = [{ s: 'home' }];
       await Promise.all([loadFeed(), loadNotifs()]);
       render();
-      toast('Dream posted! Duniya dekh sakti hai ✨');
+      toast('Dream posted! It is now visible to the community ✨');
     }),
 
     like: (el) => {
@@ -1061,7 +1070,7 @@ const App = (() => {
       if (needLogin()) return;
       const ci = document.getElementById('comment-input');
       const v = ((ci && ci.value) || S.commentDraft || '').trim();
-      if (!v) { toast('Comment likho pehle ✍️'); return; }
+      if (!v) { toast('Please write a comment first ✍️'); return; }
       wrap(async () => {
         const r = await API.comment(el.dataset.id, v);
         if (S.comments) {
@@ -1097,7 +1106,7 @@ const App = (() => {
       });
     },
 
-    more: () => toast('More options (report / block — jald hi)'),
+    more: () => toast('More options (report / block — coming soon)'),
     'edit-profile': () => { if (needLogin()) return; go('editprofile'); },
     'save-profile': () => wrap(async () => {
       const name = document.getElementById('e-name').value.trim();
@@ -1151,7 +1160,7 @@ const App = (() => {
     },
     'copy-link': (el) => { copy(el.dataset.l); toast('Link copied! 🔗'); back(); },
     'share-wa': (el) => {
-      const t = encodeURIComponent('Dekho yeh dream 🌙 DreamShare par: ' + shareLink(el.dataset.id));
+      const t = encodeURIComponent('Check out this dream 🌙 on DreamShare: ' + shareLink(el.dataset.id));
       window.open('https://wa.me/?text=' + t, '_blank');
       back();
     }
@@ -1169,12 +1178,20 @@ const App = (() => {
   }
 
   /* ---------------- Global events ---------------- */
-  $app.addEventListener('click', (ev) => {
+  function dispatchAction(ev) {
     const el = ev.target.closest('[data-act]');
     if (!el) return;
     const act = el.dataset.act;
     if (el.dataset.stop) return;
     if (actions[act]) { ev.preventDefault(); actions[act](el, ev); }
+  }
+  // The tab bar is outside #app, so it needs its own delegated listener.
+  $app.addEventListener('click', dispatchAction);
+  $tabbar.addEventListener('click', dispatchAction);
+  // Keep browser Back in sync with the in-app navigation stack.
+  window.addEventListener('popstate', () => {
+    if (S.stack.length > 1) back();
+    else if (!['home','explore','notifs','profile'].includes(top().s)) switchTab('home');
   });
 
   /* ---------------- Boot ---------------- */

@@ -18,7 +18,7 @@ const API = (() => {
         body: body ? JSON.stringify(body) : undefined
       });
     } catch (e) {
-      throw new Error('Internet connection nahi mil raha — server chalu hai?');
+      throw new Error('Unable to connect. Please check your internet connection.');
     }
     let d = {};
     try { d = await r.json(); } catch (e) { }
@@ -37,6 +37,7 @@ const API = (() => {
 
     signup: (x) => req('POST', '/api/auth/signup', x),
     login: (x) => req('POST', '/api/auth/login', x),
+    google: (credential) => req('POST', '/api/auth/google', { credential }),
     me: () => req('GET', '/api/me'),
     updateMe: (x) => req('PUT', '/api/me', x),
 

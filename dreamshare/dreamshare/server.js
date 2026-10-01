@@ -214,6 +214,26 @@ api['POST /api/auth/signup'] = async (req, res, m, q, me, body) => {
   return json(res, 200, { token: makeToken(u.id), user: publicUser(u, u) });
 };
 
+api['POST /api/auth/google'] = async (req, res, m, q, me, body) => {
+  const clientId = process.env.GOOGLE_CLIENT_ID || '';
+  const credential = String(body.credential || '');
+  if (!clientId) return json(res, 503, { error: 'Google Sign-In is not configured. Set GOOGLE_CLIENT_ID in Render.' });
+  if (!credential || credential.length > 12000) return json(res, 400, { error: 'Missing or invalid Google credential' });
+  const verify = await fetch('https://oauth2.googleapis.com/tokeninfo?id_token=' + encodeURIComponent(credential));
+  if (!verify.ok) return json(res, 401, { error: 'Google credential could not be verified' });
+  const g = await verify.json();
+  if (g.aud !== clientId || g.email_verified !== 'true' || !g.email) return json(res, 401, { error: 'Google account verification failed' });
+  let u = db.users.find(x => x.email === String(g.email).toLowerCase());
+  if (!u) {
+    const base = String(g.email).split('@')[0].toLowerCase().replace(/[^a-z0-9_]/g, '_').slice(0, 15) || 'dreamer';
+    let username = base, n = 1;
+    while (db.users.some(x => x.username === username)) username = (base.slice(0, 15) + '_' + n++).slice(0, 20);
+    u = { id:id(), name:String(g.name || g.given_name || 'Dreamer').slice(0,40), username, email:String(g.email).toLowerCase(), pw:'', bio:'New dreamer 🌙', hue:Math.floor(Math.random()*360), guest:false, createdAt:now(), googleSub:g.sub };
+    db.users.push(u); save();
+  }
+  return json(res, 200, { token:makeToken(u.id), user:publicUser(u,u) });
+};
+
 api['POST /api/auth/login'] = async (req, res, m, q, me, body) => {
   const who = String(body.id || '').trim().toLowerCase();
   const password = String(body.password || '');
@@ -463,12 +483,12 @@ function serveStatic(req, res, urlPath) {
       fs.readFile(path.join(PUB, 'index.html'), (e2, buf2) => {
         if (e2) return json(res, 404, { error: 'Not found' });
         res.writeHead(200, { 'Content-Type': MIME['.html'] });
-        res.end(buf2);
+        res.end(String(buf2).replace('__GOOGLE_CLIENT_ID__', String(process.env.GOOGLE_CLIENT_ID || '')));
       });
       return;
     }
     res.writeHead(200, { 'Content-Type': MIME[path.extname(file)] || 'application/octet-stream' });
-    res.end(buf);
+    res.end(path.extname(file) === '.html' ? String(buf).replace('__GOOGLE_CLIENT_ID__', String(process.env.GOOGLE_CLIENT_ID || '')) : buf);
   });
 }
 

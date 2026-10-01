@@ -121,3 +121,10 @@ account bana lo. (Production me email-reset add koga.)
 A: `public/offline-demo.html` — woh bina server/internet ke chalta hai (fake data ke saath).
 
 Sweet dreams! 🌙
+
+
+## Google Sign-In setup
+
+Google sign-in requires a Google OAuth 2.0 Web Client ID. In Google Cloud Console, configure the OAuth consent screen and create a Web application OAuth client. Add the deployed Render origin (for example, `https://dream-share.onrender.com`) to **Authorized JavaScript origins**. Then add `GOOGLE_CLIENT_ID` as an environment variable in the Render service, using that client ID as its value. Redeploy the service. The server verifies the Google ID token audience and verified email before creating or signing in the account.
+
+Apple sign-in is not configured.
